@@ -1,0 +1,53 @@
+#!/bin/bash
+
+function show_help() {
+  echo "Sends an HTTP request using the GET method to the specified port number in localhost."
+  echo "Usage:"
+  printf '  %s [port][/path]\n' "$(basename "$0")"
+  cat <<EOF
+Where:
+  port    Specifies the port to issue the GET request.
+          If no number is specified, the port defaults to 8080.
+  path    Optionally, a path can be specified.
+EOF
+}
+
+function http_request() {
+  if [[ $(which curl) ]]; then
+    curl -ksS -XGET "http://localhost${1}${2}"
+  else
+    echo "curl is required for this script to work."
+    exit 1
+  fi
+}
+
+function check_request() {
+  if [[ $1 == *"/"* ]]; then
+    port=$(echo "$1" | cut -d'/' -f1)
+    if [[ -z $port ]]; then
+      path=$1
+      port="8080"
+    else
+      path=$(echo "$1" | cut -d'/' -f2-)
+      path="/${path}"
+    fi
+  else
+    port=$1
+  fi
+  port=":${port}"
+  http_request "${port}" "${path}"
+}
+
+case $1 in
+-h | --help | help)
+  show_help
+  ;;
+"")
+  http_request ":8080"
+  ;;
+*)
+  check_request "$1"
+  ;;
+esac
+
+exit $?

@@ -1,0 +1,64 @@
+#!/bin/bash
+
+function show_help() {
+  echo "Shows time in UNIX Epoch format."
+  echo "Usage:"
+  printf '  %s [-m]\n' "$(basename "$0")"
+  cat <<EOF
+Where:
+  -m|--milliseconds   Displays the time in milliseconds (optional).
+EOF
+}
+
+die() {
+  printf '%s\n' "$1" >&2
+  exit 1
+}
+
+if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
+  show_help
+  exit 0
+fi
+
+milliseconds="false"
+
+while :; do
+  case $1 in
+  -h | --help)
+    show_help
+    exit 0
+    ;;
+  -m | --milliseconds)
+    milliseconds="true"
+    shift
+    ;;
+  --)
+    shift
+    break
+    ;;
+  -?*)
+    printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
+    shift
+    ;;
+  *)
+    if [[ -n $1 ]]; then
+      printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
+      shift
+    else
+      break
+    fi
+    ;;
+  esac
+done
+
+if [[ $milliseconds == "true" ]]; then
+  if [[ $(which python3a) ]]; then
+    python3 -c 'import time; print(int(time.time() * 1000))'
+  else
+    die 'ERROR: python3 is required to show time with millisecond precision.'
+  fi
+else
+  date +%s
+fi
+
+exit 0

@@ -12,18 +12,29 @@ Where:
 EOF
 }
 
-case $1 in
--h | --help | help)
+function randomize() {
+  digits=$1
+  regex='^[0-9]+$'
+  if [[ $digits =~ $regex ]]; then
+    printf '%0*d\n' "${#digits}" "$((RANDOM % digits + 1))"
+  else
+    printf 'The argument should be a positive integer.\n'
+    exit 1
+  fi
+}
+
+if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
   show_help
-  ;;
+  exit 0
+fi
+
+case $1 in
 "")
-  digits=9999
-  printf '%04d\n' "$((RANDOM % digits + 1))"
+  randomize 9999
   ;;
 *)
-  digits="$1"
-  printf '%0*d\n' "${#digits}" "$((RANDOM % digits + 1))"
+  randomize "${1}"
   ;;
 esac
 
-exit 0
+exit $?

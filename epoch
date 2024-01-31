@@ -11,48 +11,27 @@ Where:
 EOF
 }
 
-die() {
-  printf '%s\n' "$1" >&2
-  exit 1
-}
-
-milliseconds="false"
-
-while :; do
-  case $1 in
-  -h | --help)
-    show_help
-    exit 0
-    ;;
-  -m | --milliseconds)
-    milliseconds="true"
-    shift
-    ;;
-  --)
-    shift
-    break
-    ;;
-  -?*)
-    die "Unknown option: ${1}"
-    ;;
-  *)
-    if [[ -n $1 ]]; then
-      die "Unknown option: ${1}"
-    else
-      break
-    fi
-    ;;
-  esac
-done
-
-if [[ $milliseconds == "true" ]]; then
-  if [[ $(which python3) ]]; then
-    python3 -c 'import time; print(int(time.time() * 1000))'
-  else
-    die 'python3 is required to show time with millisecond precision.'
-  fi
-else
-  date +%s
+if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
+  show_help
+  exit 0
 fi
 
-exit 0
+case $1 in
+-m | --milliseconds)
+  if [[ $(which python3) ]]; then
+    python3 -c 'import time; print(int(time.time() * 1000))'
+    exit 0
+  else
+    printf "python3 is required to show time with millisecond precision.\n"
+    exit 1
+  fi
+  ;;
+"")
+  date +%s
+  exit $?
+  ;;
+*)
+  printf "Unknown option: %s\n" "${1}"
+  exit 1
+  ;;
+esac

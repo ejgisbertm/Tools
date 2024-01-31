@@ -6,8 +6,9 @@ function show_help() {
   printf '  %s [number]\n' "$(basename "$0")"
   cat <<EOF
 Where:
-  number    If specified, the script will generate a random integer between 0 and [number].
-            If no number is specified, the upper limit defaults to 9999.
+  number      If specified, the script will generate a random integer between 0 and [number].
+              If no number is specified, the upper limit defaults to 9999.
+  -h, --help  Shows this message.
 EOF
 }
 

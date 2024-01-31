@@ -6,9 +6,10 @@ function show_help() {
   printf '  %s [port][/path]\n' "$(basename "$0")"
   cat <<EOF
 Where:
-  port    Specifies the port to issue the GET request.
-          If no number is specified, the port defaults to 8080.
-  path    Optionally, a path can be specified.
+  port        Specifies the port against which to issue the GET request.
+              If no number is specified, the port defaults to 8080.
+  path        Optionally, a path can be specified.
+  -h, --help  Shows this message.
 EOF
 }
 

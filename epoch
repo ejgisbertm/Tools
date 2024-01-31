@@ -6,7 +6,8 @@ function show_help() {
   printf '  %s [-m]\n' "$(basename "$0")"
   cat <<EOF
 Where:
-  -m|--milliseconds   Displays the time in milliseconds (optional).
+  -m, --milliseconds    Displays the time in milliseconds (optional).
+  -h, --help            Shows this message.
 EOF
 }
 

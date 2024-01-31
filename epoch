@@ -16,11 +16,6 @@ die() {
   exit 1
 }
 
-if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
-  show_help
-  exit 0
-fi
-
 milliseconds="false"
 
 while :; do
@@ -38,13 +33,11 @@ while :; do
     break
     ;;
   -?*)
-    printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
-    shift
+    die "Unknown option: ${1}"
     ;;
   *)
     if [[ -n $1 ]]; then
-      printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
-      shift
+      die "Unknown option: ${1}"
     else
       break
     fi
@@ -53,10 +46,10 @@ while :; do
 done
 
 if [[ $milliseconds == "true" ]]; then
-  if [[ $(which python3a) ]]; then
+  if [[ $(which python3) ]]; then
     python3 -c 'import time; print(int(time.time() * 1000))'
   else
-    die 'ERROR: python3 is required to show time with millisecond precision.'
+    die 'python3 is required to show time with millisecond precision.'
   fi
 else
   date +%s

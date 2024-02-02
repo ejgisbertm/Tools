@@ -5,7 +5,7 @@ function show_help() {
   echo "Usage:"
   printf '  %s [number]\n' "$(basename "$0")"
   cat <<EOF
-Where:
+Options:
   number      If specified, the script will generate a random integer between 0 and [number].
               If no number is specified, the upper limit defaults to 9999.
   -h, --help  Shows this message.

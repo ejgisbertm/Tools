@@ -17,7 +17,7 @@ if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
 fi
 
 case $1 in
--h)
+-h | --help)
   show_help
   exit 0
   ;;

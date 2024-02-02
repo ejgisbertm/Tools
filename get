@@ -1,8 +1,8 @@
 #!/bin/bash
 
 function show_help() {
-  echo "Sends an HTTP request using the GET method to the specified port number in localhost."
-  echo "Usage:"
+  printf 'Sends an HTTP request using the GET method to the specified port number in localhost.\n'
+  printf 'Usage:\n'
   printf '  %s [port][/path]\n' "$(basename "$0")"
   cat <<EOF
 Options:
@@ -53,7 +53,7 @@ case $1 in
   http_request ":8080"
   ;;
 -*)
-  printf 'Unknow option: %s\n' "${1}"
+  printf 'Unknown option: %s\n' "${1}"
   exit 1
   ;;
 *)

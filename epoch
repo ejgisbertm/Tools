@@ -1,8 +1,8 @@
 #!/bin/bash
 
 function show_help() {
-  echo "Shows time in UNIX Epoch format."
-  echo "Usage:"
+  printf 'Shows time in UNIX Epoch format.\n'
+  printf 'Usage:\n'
   printf '  %s [-m]\n' "$(basename "$0")"
   cat <<EOF
 Options:
@@ -26,7 +26,7 @@ case $1 in
     python3 -c 'import time; print(int(time.time() * 1000))'
     exit 0
   else
-    printf "python3 is required to show time with millisecond precision.\n"
+    printf 'python3 is required to show time with millisecond precision.\n'
     exit 1
   fi
   ;;
@@ -35,7 +35,7 @@ case $1 in
   exit $?
   ;;
 *)
-  printf "Unknown option: %s\n" "${1}"
+  printf 'Unknown option: %s\n' "${1}"
   exit 1
   ;;
 esac

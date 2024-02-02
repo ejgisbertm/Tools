@@ -1,0 +1,169 @@
+#!/bin/bash
+
+function show_help() {
+  printf 'Creates an Elasticsearch container using Docker.\n'
+  printf 'Usage:\n'
+  printf '  %s [-k|-e]\n' "$(basename "$0")"
+  cat <<EOF
+Options:
+                    When used without options, the script starts an Elasticsearch
+                    container with a random port number. If the script is run
+                    multiple times, each new instance of Elasticsearch is added
+                    to a cluster with the first one as master.
+  -k, --kibana      Starts a Kibana container and attaches it to a running
+                    Elasticsearch instance or cluster.
+  -e, --elasticvue  Starts an Elasticvue container and attaches it to a running
+                    Elasticsearch instance or cluster. If no Elasticsearch
+                    instances are found, you can add one at execution time.
+  -h, --help        Shows this message.
+EOF
+}
+
+function service_cleanup() {
+  if [[ -f "${PWD}/elasticsearch-${container_number}.yml" ]]; then
+    rm -f "${PWD}/elasticsearch-${container_number}.yml"
+  fi
+}
+
+function check_endpoint() {
+  check_iterations=0
+  while [[ $check_iterations -lt 5 ]]; do
+    curl -ksS "http://localhost:${container_number}" >/dev/null 2>&1
+    endpoint_status=$?
+    if [[ $endpoint_status -eq 0 ]]; then
+      check_iterations=$((check_iterations + 1))
+    fi
+    sleep 1
+  done
+}
+
+function start_elastic() {
+  printf 'Starting Elasticsearch container...\n'
+  if docker network inspect elasticsearch >/dev/null 2>&1; then
+    : # skip
+  else
+    docker network create elasticsearch
+  fi
+  if [[ ! -f "${PWD}/elasticsearch-${container_number}.yml" ]]; then
+    touch "${PWD}/elasticsearch-${container_number}.yml"
+    cat <<EOF >"${PWD}/elasticsearch-${container_number}.yml"
+http:
+  cors.allow-origin: "*"
+  cors.enabled: true
+  cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
+  cors.allow-headers: X-Requested-With,X-Auth-Token,Content-Type,Content-Length
+EOF
+  fi
+  if docker ps | grep -q "elasticsearch-"; then
+    elasticsearch_master=$(docker ps | grep "elasticsearch-" | awk '{print $1}' | head -1 | tr -d ' ')
+    elasticsearch_master=$(docker inspect "${elasticsearch_master}" | grep -i "hostport" | uniq | tr -d '" ' | cut -d':' -f2)
+    docker run --rm "$console_mode" --name elasticsearch-"${container_number}" \
+      -p "${container_number}":9200 \
+      -e "ELASTICSEARCH_CLUSTER_NAME=elasticsearch-cluster" \
+      -e "ELASTICSEARCH_NODE_NAME=elasticsearch-${container_number}" \
+      -e "ELASTICSEARCH_CLUSTER_HOSTS=elasticsearch-${elasticsearch_master}" \
+      -e "ELASTICSEARCH_CLUSTER_MASTER_HOSTS=elasticsearch-${elasticsearch_master}" \
+      -v "${PWD}/elasticsearch-${container_number}.yml:/opt/bitnami/elasticsearch/config/my_elasticsearch.yml" \
+      --network elasticsearch \
+      bitnami/elasticsearch
+  else
+    docker run --rm "$console_mode" --name elasticsearch-"${container_number}" \
+      -p "${container_number}":9200 \
+      -e "ELASTICSEARCH_CLUSTER_NAME=elasticsearch-cluster" \
+      -e "ELASTICSEARCH_NODE_NAME=elasticsearch-${container_number}" \
+      -e "ELASTICSEARCH_CLUSTER_HOSTS=elasticsearch-${container_number}" \
+      -e "ELASTICSEARCH_CLUSTER_MASTER_HOSTS=elasticsearch-${container_number}" \
+      -v "${PWD}/elasticsearch-${container_number}.yml:/opt/bitnami/elasticsearch/config/my_elasticsearch.yml" \
+      --network elasticsearch \
+      bitnami/elasticsearch
+  fi
+}
+
+function start_kibana() {
+  if docker ps | grep -q "elasticsearch-"; then
+    dependency_master=$(docker ps | grep "elasticsearch-" | awk '{print $1}' | head -1 | tr -d ' ')
+    dependency_master=$(docker inspect "${dependency_master}" | grep -i "hostport" | uniq | tr -d '" ' | cut -d':' -f2)
+  else
+    printf 'Kibana requieres at least one instance of Elasticsearch already running, but none was found.\n'
+    exit 1
+  fi
+  if docker ps | grep -q "kibana-"; then
+    container_number=$(docker ps | grep "kibana-" | awk '{print $1}' | head -1 | tr -d ' ')
+    container_number=$(docker inspect "${container_number}" | grep -i "hostport" | uniq | tr -d '" ' | cut -d':' -f2)
+    printf 'There is already one Kibana instance running at http://localhost:%s\n' "${container_number}"
+    exit 1
+  fi
+  printf 'Starting Kibana container...\n'
+  docker run --rm "$console_mode" --name kibana-"${container_number}" \
+    -p "${container_number}":5601 \
+    -e "KIBANA_ELASTICSEARCH_URL=kubernetes.docker.internal:${dependency_master}" \
+    --network elasticsearch \
+    bitnami/kibana
+}
+
+function start_elasticvue() {
+  if docker ps | grep -q "elasticvue-"; then
+    container_number=$(docker ps | grep "elasticvue-" | awk '{print $1}' | head -1 | tr -d ' ')
+    container_number=$(docker inspect "${container_number}" | grep -i "hostport" | uniq | tr -d '" ' | cut -d':' -f2)
+    printf 'There is already one Elasticvue instance running at http://localhost:%s\n' "${container_number}"
+    exit 1
+  fi
+  printf 'Starting Elasticvue container...\n'
+  if docker ps | grep -q "elasticsearch-"; then
+    dependency_master=$(docker ps | grep "elasticsearch-" | awk '{print $1}' | head -1 | tr -d ' ')
+    dependency_master=$(docker inspect "${dependency_master}" | grep -i "hostport" | uniq | tr -d '" ' | cut -d':' -f2)
+    #docker run -p 8080:8080 -e ELASTICVUE_CLUSTERS='[{"name": "prod cluster", "uri": "http://localhost:9200", "username": "elastic", "password": "elastic"}]' cars10/elasticvue
+    docker run --rm "$console_mode" --name elasticvue-"${container_number}" \
+      -p "${container_number}":8080 \
+      -e ELASTICVUE_CLUSTERS="[{\"name\": \"localhost\", \"uri\": \"http://localhost:${dependency_master}\"}]" \
+      cars10/elasticvue
+  else
+    docker run --rm "$console_mode" --name elasticvue-"${container_number}" \
+      -p "${container_number}":8080 \
+      cars10/elasticvue
+  fi
+}
+
+if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
+  show_help
+  exit 0
+fi
+
+if [[ $(which docker) ]]; then
+  : #docker exists
+else
+  printf "docker is required for this script to work.\n"
+  exit 1
+fi
+
+console_mode="-d"
+container_number="$(printf '1%04d\n' $((RANDOM % 9999 + 1)))"
+
+case $1 in
+-h | --help)
+  show_help
+  exit 0
+  ;;
+-k | --kibana)
+  start_kibana
+  check_endpoint
+  printf 'Kibana endpoint: http://localhost:%s\n' "${container_number}"
+  ;;
+-e | --elasticvue)
+  start_elasticvue
+  check_endpoint
+  printf 'Elasticvue endpoint: http://localhost:%s\n' "${container_number}"
+  ;;
+"")
+  start_elastic
+  check_endpoint
+  service_cleanup
+  printf 'Elasticsearch endpoint: http://localhost:%s\n' "${container_number}"
+  ;;
+*)
+  printf "Unknown option: %s\n" "${1}"
+  exit 1
+  ;;
+esac
+
+exit $?

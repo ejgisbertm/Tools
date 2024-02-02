@@ -45,6 +45,10 @@ if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
 fi
 
 case $1 in
+-h)
+  show_help
+  exit 0
+  ;;
 "")
   http_request ":8080"
   ;;

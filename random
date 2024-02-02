@@ -29,6 +29,10 @@ if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
 fi
 
 case $1 in
+-h)
+  show_help
+  exit 0
+  ;;
 "")
   randomize 9999
   ;;

@@ -17,6 +17,10 @@ if [[ "$*" == *" -h"* ]] || [[ "$*" == *" --help"* ]]; then
 fi
 
 case $1 in
+-h)
+  show_help
+  exit 0
+  ;;
 -m | --milliseconds)
   if [[ $(which python3) ]]; then
     python3 -c 'import time; print(int(time.time() * 1000))'
